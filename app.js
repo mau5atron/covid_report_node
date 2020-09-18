@@ -12,7 +12,7 @@
   const tokenGenerator = require("./utilities/generators");
   // const tosTerms = require("./testing_api/agree_to_terms");
 
-/* Middleware */
+/* Middleware - transfer to appropriate controllers */
   app.use( ( req, res, next ) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
