@@ -1,0 +1,4 @@
+CREATE TABLE tokens (
+  token VARCHAR(255) NOT NULL PRIMARY KEY,
+  valid_token BIT(1) NOT NULL
+);
