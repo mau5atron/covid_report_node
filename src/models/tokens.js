@@ -1,4 +1,4 @@
-const db = require("../db/database");
+const db = require("../../db/database");
 
 module.exports = class Token {
   constructor(token, isValidToken = 1){

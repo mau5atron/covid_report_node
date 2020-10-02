@@ -2,6 +2,7 @@
 #include <string>
 #include <ctime>
 #include <fstream>
+#include <cstring>
 
 /*
   This program creates sql schema migration file with added utc date time
@@ -51,7 +52,6 @@ int main(int argc, char *argv[]){
         return 1;
       }
     }
-    // }
   }
   return 0;
 }

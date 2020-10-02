@@ -3,8 +3,8 @@
 /* Dependencies */
 
 /* Source */
-const tos = require("../utilities/tos");
-const tokenGenerator = require("../utilities/generators");
+const tos = require("../helpers/tos");
+const tokenGenerator = require("../../lib/utilities/generators");
 const Token = require("../models/tokens");
 
 exports.accessHeaders = ( req, res, next ) => {

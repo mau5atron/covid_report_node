@@ -2,15 +2,14 @@
   const express = require("express");
   const app = express();
   const bodyParser = require("body-parser");
-  // const tos = require("./utilities/tos");
   const cors = require("cors");
   app.use(bodyParser.urlencoded({extended: false}));
   app.use(cors());
   app.use(bodyParser.json());
 
 /* Source */
-  const api = require("./controllers/api");
-  const apiRouter = require("./routes/api");
+  const api = require("./src/controllers/api");
+  const apiRouter = require("./src/routes/api");
 
 /* Middleware - transfer to appropriate controllers */
   app.use(api.accessHeaders);
