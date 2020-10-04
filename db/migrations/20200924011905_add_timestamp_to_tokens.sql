@@ -1,2 +1,0 @@
-ALTER TABLE tokens
-ADD COLUMN created_at timestamp NULL DEFAULT CURRENT_TIMESTAMP;

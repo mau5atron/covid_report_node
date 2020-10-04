@@ -2,7 +2,7 @@ const { Worker } = require("worker_threads");
 
 function runImportDataService( workerData ){
   return new Promise( ( resolve, reject ) => {
-    const importServiceWorker = new Worker("./background_jobs/importCSVDataService.js", { workerData });
+    const importServiceWorker = new Worker("./background_jobs/initialImportCSVDataService.js", { workerData });
     importServiceWorker.on("message", resolve);
     importServiceWorker.on("error", reject);
     importServiceWorker.on("exit", ( code ) => {

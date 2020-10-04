@@ -1,0 +1,4 @@
+ALTER TABLE
+  state_data
+ADD COLUMN
+  date DATETIME;
