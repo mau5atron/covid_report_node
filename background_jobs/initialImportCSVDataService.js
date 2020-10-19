@@ -23,48 +23,27 @@ if ( isMainThread ){
     .pipe(csvParser())
     .on("data", ( row ) => {
       // header will be displayed as row of objects
-      if ( row["date"] == "2020-09-27"){// import all rows on first run
+      // if ( row["date"] == "2020-09-27"){// import all rows on first run instead of just specufic date
         // console.log("Row: ", row);
 
         // stateArray.push(row["state"]);
+        if ( row["positive"] == "" ){
+          row["positive"] = null;
+        } else if ( row["recovered"] == "" ){
+          row["recovered"] = null;
+        } else if ( row["death"] == "" ){
+          row["death"] = null;
+        }
+
         stateArray.push({
           state_abbrev: row["state"],
           state_name: statesHash[row["state"]],
           positive: row["positive"],
-          deaths: row["death"],
           recovered: row["recovered"],
+          deaths: row["death"],
           date: row["date"]
         });
-      }
-
-      db.execute(
-        `
-          START TRANSACTION;
-            INSERT INTO
-              states(state_abbrev, state_name)
-            VALUES(
-              ?,
-              ?
-            );
-
-          SET state_fk = LAST_INSERT_ID();
-
-          INSERT INTO
-            state_data(
-              positive,
-              negative,
-              deaths,
-              state_id
-            ) VALUES (
-              ?,
-              ?,
-              ?,
-              state_fk
-            );
-          COMMIT;
-        `,
-        []
-      );
+      // }
 
       // instead of trying to save latest database
       // lets save all the rows on the first run,
@@ -85,8 +64,74 @@ if ( isMainThread ){
     })
     .on("end", () => {
       // console.log("state array: ", stateArray);
-      console.log("state array: ", stateArray);
-      console.log("End of csv");
+      var dbResponse = db.execute(
+        "SELECT COUNT(*) AS row_count FROM state;"
+      );
+
+      dbResponse.then( (row, fieldData) => {
+      
+        let queryResponse = row[0][0].row_count;
+        console.log("query type: ", typeof queryResponse);
+        console.log("DB response: ", queryResponse);
+        if ( queryResponse == 0 ){ // initial import
+          console.log("query returned zero");
+          // console.log("state data array: ", stateArray);
+          for ( let i = 0 ; i < stateArray.length ; i++ ){
+            // console.log("input to save: ", stateArray[i]);
+            db.query(
+              `
+                START TRANSACTION;
+                  INSERT INTO
+                    state(state_abbrev, state_name)
+                  VALUES(?, ?);
+
+                  SET @state_fk = LAST_INSERT_ID();
+
+                  INSERT INTO
+                    state_data(positive, recovered, deaths, state_id, date)
+                  VALUES (?, ?, ?, LAST_INSERT_ID(), ?);
+                COMMIT;
+              `, 
+              [
+                stateArray[i].state_abbrev,
+                stateArray[i].state_name,
+                stateArray[i].positive,
+                stateArray[i].recovered,
+                stateArray[i].deaths,
+                stateArray[i].date
+              ]
+            ).then(([row, fieldData]) => {
+              console.log("inserted: ", row[0]);
+            })
+            .catch( err => {
+              console.log("Error performing CSV import: ", err);
+            });
+
+            /*
+              state_abbrev: row["state"],
+              state_name: statesHash[row["state"]],
+              positive: row["positive"],
+              recovered: row["recovered"],
+              deaths: row["death"],
+              date: row["date"]
+            */
+          }
+        } else { // future imports
+          // check the max date, start imports from there
+        }
+
+        // db.end(); // end the connection here rather than exit the running process
+      }).catch( err => {
+        console.log(err);
+        process.exit(1);
+      });
+      // console.log("state array: ", stateArray);
+      /* console.log("End of csv"); */
+      // db.end();
+    })
+    .on("close", () => {
+      console.log("closing....");
+      db.end();
     });
 
   parentPort.postMessage({ status: "Importing csv data...."});

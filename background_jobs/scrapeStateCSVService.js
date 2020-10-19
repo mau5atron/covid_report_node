@@ -26,7 +26,7 @@ if ( isMainThread ){
   const file = fs.createWriteStream( destination + "all_states.csv");
   var url = "https://covidtracking.com/data/download/all-states-history.csv";
 
-  const request = https.get(url, ( response ) => {
+  https.get(url, ( response ) => {
     response.pipe(file);
     file.on("finish", () => {
       file.close(() => {
