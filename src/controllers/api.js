@@ -6,6 +6,7 @@
 const tos = require("../helpers/tos");
 const tokenGenerator = require("../../lib/utilities/generators");
 const Token = require("../models/tokens");
+const StateData = require("../models/stateData");
 
 exports.accessHeaders = ( req, res, next ) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -61,7 +62,11 @@ exports.validateToken = ( req, res, next ) => {
     // var validatedTokenResponse = Token.validateToken(apiToken);
     Token.validateToken(apiToken)
       .then( ( [row, fieldData] ) => {
-        console.log("Row data: ", row[0].valid_token.toString("utf8"));
+        // console.log("Row data: ", row[0].valid_token.toString("utf8"));
+        if ( row.length == 0 ){
+          throw "Token not found.";
+        }
+
         var isTokenValid = row[0].valid_token[0];
         res.send( JSON.stringify( { token_valid: isTokenValid } ) );
       })
@@ -72,3 +77,40 @@ exports.validateToken = ( req, res, next ) => {
     res.send( JSON.stringify( { error: "Could not validate token."} ) );
   }
 }
+
+exports.getUSData = ( req, res, next ) => {
+  var receivedApiToken = req.body["token"];
+  console.log("trying to verify token: ", receivedApiToken);
+  if ( typeof receivedApiToken == "string" && receivedApiToken.length == 32 ){
+    Token.validateToken(receivedApiToken)
+      .then(([row, fieldData]) => {
+        if ( row.length == 0 ){
+          throw "Token not found.";
+        }
+
+        var isTokenValid = row[0].valid_token[0];
+        
+        StateData.getLatestStateData()
+          .then( ( rows, fieldData ) => {
+            var payload = new Object;
+            payload["state_data"] = new Object;
+            for ( var i = 0 ; i < rows[0].length ; i++ ){
+              payload["state_data"][rows[0][i].state_abbrev] = rows[0][i];
+            }
+
+            payload["token_valid"] = isTokenValid;
+            res.send( JSON.stringify({ payload }) );
+          })
+          .catch( err => {
+            console.log("Error fetching state data: ", err);
+          })
+
+        // will also be sending the state data
+      })
+      .catch( err => {
+        console.log("Error checking validation: ", err);
+      })
+  } else {
+    res.send( JSON.stringify({ error: "Could not validate token."}) );
+  }
+} 

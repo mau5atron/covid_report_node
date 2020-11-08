@@ -50,6 +50,8 @@ if ( isMainThread ){
   var stateDataArray = new Array;
   var stateDataHash = new Object;
   var stateDataDBCount;
+  const csvFileLocation = "./crawler_downloads/all_states.csv";
+
   db.execute(
       `
         SELECT
@@ -82,10 +84,9 @@ if ( isMainThread ){
       console.log("State data db count: ", stateDataDBCount); */
       return stateDataHash;
     }).then( resDataHash => {
+      var stateDataArrayToDB = new Array;
       if ( resDataHash["state_data_count"] == 0 ){
-        var stateDataArrayToDB = new Array;
         // proceed to import all data from csv
-        const csvFileLocation = "./crawler_downloads/all_states.csv";
         var csvReadStream = fs.createReadStream(csvFileLocation);
         csvReadStream
           .on("error", err => {
@@ -166,6 +167,57 @@ if ( isMainThread ){
           -- SELECT DATE_FORMAT(CURDATE(), "%m/%d/%Y");
         */
         console.log("Doing something else with state_data count > 0.....");
+
+        db.execute(
+          `
+          SELECT 
+            DATE_FORMAT(date, "%Y-%m-%d") AS latest_date
+          FROM state_data
+          ORDER BY 
+            date DESC
+          LIMIT 1;
+          `
+        )
+        .then( (row, fieldData) => {
+          return row[0][0].latest_date;
+        })
+        .then( latest_date => {
+          /* console.log("latest_date: ", latest_date);
+          console.log("ResDataHash: ", resDataHash); */
+          const csvReadStream = fs.createReadStream(csvFileLocation);
+          csvReadStream
+            .on("error", err => {
+              console.log("Error performing read stream: ", err);
+            })
+            .pipe( csvParser() )
+            .on("data", (csvRow) => {
+              if ( csvRow["date"] > latest_date ){
+                // console.log("CsvROW: ", csvRow["date"]);
+                csvRow["positive"] = utilities.checkForEmptyProp( csvRow["positive"] );
+                csvRow["recovered"] = utilities.checkForEmptyProp( csvRow["recovered"] );
+                csvRow["death"] = utilities.checkForEmptyProp( csvRow["death"] );
+                stateDataArrayToDB.push([ csvRow["positive"], csvRow["recovered"], csvRow["death"], csvRow["date"], resDataHash[csvRow["state"]].id ] );
+              }
+            })
+            .on("end", () => {
+              if ( stateDataArrayToDB.length > 0 ){
+                // reverse so we can start with the earliest date first
+                stateDataArrayToDB.reverse();
+                db.query(
+                  "INSERT INTO state_data(positive, recovered, deaths, date, state_id) VALUES ?",
+                  [stateDataArrayToDB]
+                ).then((row, fieldData) => {
+                  console.log("Inserted data...");
+                  console.log("ending....");
+                }).catch( err => {
+                  console.log("Error inserting csv rows: ", err);
+                });
+              }
+            });
+        })
+        .catch( err => {
+          console.log("Error performing query: ", err);
+        })
       }
     })
     .catch( err => {
